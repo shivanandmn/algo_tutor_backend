@@ -33,4 +33,4 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 
 # Command to run the application
-CMD ["python", "main.py", "start"]
+CMD ["python", "main.py"]
