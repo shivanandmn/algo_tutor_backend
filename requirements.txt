@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+sqlalchemy
+alembic
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+livekit
+livekit-agents
+livekit-plugins-openai
+livekit-plugins-noise-cancellation
