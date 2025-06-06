@@ -30,7 +30,8 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 
 # Cloud Run will set PORT environment variable
-ENV PORT=8080
+ENV PORT=8081
+EXPOSE 8081
 
 # Command to run the application
 CMD ["python", "main.py"]
