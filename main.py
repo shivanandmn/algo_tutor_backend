@@ -1,6 +1,7 @@
 from app.agents.base.agent import entrypoint
 from livekit import agents
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 

@@ -3,7 +3,7 @@ name: Deploy to Cloud Run
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main
 
 
 jobs:
@@ -39,4 +39,4 @@ jobs:
           --region ${{ secrets.REGION }} \
           --memory 1Gi \
           --cpu 1 \
-          --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},LIVEKIT_API_KEY=${{ secrets.LIVEKIT_API_KEY }},LIVEKIT_API_SECRET=${{ secrets.LIVEKIT_API_SECRET }}"
+          --set-env-vars "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},LIVEKIT_API_KEY=${{ secrets.LIVEKIT_API_KEY }},LIVEKIT_API_SECRET=${{ secrets.LIVEKIT_API_SECRET }},LIVEKIT_URL=${{ secrets.LIVEKIT_URL}}"
