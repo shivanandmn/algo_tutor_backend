@@ -39,7 +39,7 @@ async def entrypoint(ctx: agents.JobContext):
             await session.generate_reply()
     finally:
         # 5. Cleanly stop the session pipelines
-        await session.stop()
+        pass  # No stop() method on AgentSession; cleanup not needed or handled elsewhere.
 
 if __name__ == "__main__":
     agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
