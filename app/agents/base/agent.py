@@ -5,7 +5,6 @@ from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
 from livekit.plugins import openai, noise_cancellation
 from livekit.agents import AutoSubscribe
-
 load_dotenv()
 
 class Assistant(Agent):
@@ -18,7 +17,8 @@ async def entrypoint(ctx: agents.JobContext):
 
     # 2. Create and start the AgentSession
     session = AgentSession(
-        llm=openai.realtime.RealtimeModel(voice="coral")
+        llm=openai.realtime.RealtimeModel(
+            model = "gpt-4o-mini-realtime-preview",voice="alloy")
     )
     await session.start(
         room=ctx.room,
