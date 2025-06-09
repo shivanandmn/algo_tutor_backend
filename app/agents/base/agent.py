@@ -1,44 +1,78 @@
 from dotenv import load_dotenv
 import asyncio
-
+import livekit
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
 from livekit.plugins import openai, noise_cancellation
 from livekit.agents import AutoSubscribe
+import os
+import logging
+import json
+from livekit.agents import JobProcess
+# import silero
+
+# def prewarm(proc: JobProcess):
+#     proc.userdata["vad"] = silero.VAD.load()
+    
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions="You are a helpful voice AI assistant.")
         # Store participant information
         self.user_names = {}
+        
+    async def edit_instructions(self, instructions: str):
+        await self.update_instructions(instructions)
+    
+    async def on_enter(self):
+        self.session.generate_reply()
+        
 
 async def entrypoint(ctx: agents.JobContext):
+    logger.info("Starting voice assistant")
     # 1. Connect to the LiveKit room (only audio)
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+
+    participant = await ctx.wait_for_participant()
+    logger.info(f"starting voice assistant for participant {participant.identity}")
+    logger.info(f"starting voice assistant for participant {participant.name}")
     
     # Create the agent instance
     agent = Assistant()
-    
-    # Set up participant tracking
-    @ctx.room.on("participant_connected")
-    def on_participant_connected(participant):
-        # Store participant name when they join
-        agent.user_names[participant.identity] = participant.name
-        print(f"Participant connected: {participant.name} (identity: {participant.identity})")
-    
-    @ctx.room.on("participant_disconnected")
-    def on_participant_disconnected(participant):
-        # Remove participant when they leave
-        if participant.identity in agent.user_names:
-            del agent.user_names[participant.identity]
-            print(f"Participant disconnected: {participant.identity}")
+    # print("After agent")
+    @ctx.room.on("data_received")
+    def on_data_received(data_packet):
+        # Log metadata
+        sender = data_packet.participant.identity if data_packet.participant else "server"
+        logger.info(f"Data received from {sender}: kind={data_packet.kind}, topic={data_packet.topic}")
+        
+        # Decode payload
+        try:
+            text = data_packet.data.decode("utf-8")
+            problem_context = json.loads(text)
+            logger.info(f"Prompt received: {problem_context}")
+            question = problem_context.get("content", "")
+            title = problem_context.get("title", "")
+            instructions=f"You are a Expert tutor in Data Structures and Algorithms. You are speaking with a student who is learning Data Structures and Algorithms. By Solving the questions you will help the student to understand the concepts better. \nQuestion Title: {title}\nQuestion: {question}.\n Your task is provide as many hits as possible around this question to teach him and help him to understand the concepts better."
+            asyncio.create_task(agent.edit_instructions(instructions))
+            # process the text    
+            
+        except Exception as e:
+            logger.error(f"Error decoding payload: {e}")
 
     # 2. Create and start the AgentSession
+
+    
     session = AgentSession(
+        # vad=ctx.userdata["vad"],
         llm=openai.realtime.RealtimeModel(
-            model = "gpt-4o-mini-realtime-preview",voice="alloy")
+            model = "gpt-4o-mini-realtime-preview",voice="alloy",
+            )
     )
+
+    logger.info("Starting AgentSession...")
     await session.start(
         room=ctx.room,
         agent=agent,  # Use our agent instance with user_names
@@ -46,37 +80,17 @@ async def entrypoint(ctx: agents.JobContext):
             noise_cancellation=noise_cancellation.BVC(),
         ),
     )
+    
+    
 
-    try:
-        # Populate initial participants that were already in the room
-        for remote_participant in ctx.room.remote_participants.values():
-            agent.user_names[remote_participant.identity] = remote_participant.name
-            print(f"Initial participant found: {remote_participant.name} (identity: {remote_participant.identity})")
-            
-        # Format user names for personalized greeting
-        user_list = list(agent.user_names.values())
-        greeting_names = ""  
-        greeting_names = user_list[0]
-        
-        # 3. Initial greeting to user with their name
-        greeting_instruction = f"Greet {greeting_names} by name and offer your assistance."
-        await session.generate_reply(instructions=greeting_instruction)
-
-        # 4. Keep generating replies as long as user is in room
-        while ctx.room.remote_participants:
-            # Include user names in the context for the agent
-            user_context = ""
-            if agent.user_names:
-                names_list = list(agent.user_names.values())
-                user_context = f"You're speaking with {', '.join(names_list)}. "
-            
-            # Generate reply with access to user names
-            await session.generate_reply(
-                instructions=f"{user_context}Respond conversationally and helpfully."
-            )
-    finally:
-        # 5. Cleanly stop the session pipelines
-        pass  # No stop() method on AgentSession; cleanup not needed or handled elsewhere.
 
 if __name__ == "__main__":
-    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
+    agents.cli.run_app(agents.WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        ws_url=os.getenv("LIVEKIT_URL"),
+        api_key=os.getenv("LIVEKIT_API_KEY"),
+        api_secret=os.getenv("LIVEKIT_API_SECRET"),
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8081")),
+        # prewarm=prewarm,
+    ))

@@ -9,3 +9,4 @@ livekit
 livekit-agents
 livekit-plugins-openai
 livekit-plugins-noise-cancellation
+# silero 
