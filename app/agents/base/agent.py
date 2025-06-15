@@ -16,7 +16,10 @@ class Assistant(Agent):
 async def entrypoint(ctx: agents.JobContext):
     # 1. Connect to the LiveKit room (only audio)
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    
+
+    participant = await ctx.wait_for_participant()
+    print(f"starting voice assistant for participant {participant.identity}")
+
     # Create the agent instance
     agent = Assistant()
     
