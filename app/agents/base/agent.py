@@ -90,6 +90,6 @@ if __name__ == "__main__":
         api_key=os.getenv("LIVEKIT_API_KEY"),
         api_secret=os.getenv("LIVEKIT_API_SECRET"),
         host="0.0.0.0",
-        port=int(os.getenv("PORT", "8081")),
+        port=int(os.getenv("PORT", "8080")),
         # prewarm=prewarm,
     ))

@@ -33,6 +33,6 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
 EXPOSE 8080
 
-RUN python main.py download-files
+RUN python app/agents/base/agent.py download-files
 # Command to run the application
-CMD ["python", "main.py"]
+CMD ["python", "app/agents/base/agent.py", "start"]
