@@ -3,23 +3,34 @@ import asyncio
 import livekit
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
-from livekit.plugins import openai, noise_cancellation
+from livekit.plugins import deepgram, elevenlabs, openai, silero, noise_cancellation
 from livekit.agents import AutoSubscribe
 import os
 import logging
 import json
 from livekit.agents import JobProcess
-# import silero
+from livekit.plugins.turn_detector.english import EnglishModel
 
-# def prewarm(proc: JobProcess):
-#     proc.userdata["vad"] = silero.VAD.load()
+def prewarm(proc: JobProcess):
+    proc.userdata["vad"] = silero.VAD.load()
     
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+
 class Assistant(Agent):
-    def __init__(self) -> None:
-        super().__init__(instructions="You are a helpful voice AI assistant.")
+    def __init__(self, **kwargs) -> None:
+        # Create the OpenAI LLM
+        openai_llm = openai.LLM(
+            model="gpt-4o-mini",    # or "gpt-4o", "o1", etc.
+            temperature=0.7,
+        )
+        # Initialize the Agent with the LLM
+        super().__init__(
+            instructions="You are a helpful voice assistant.",
+            llm=openai_llm,
+            **kwargs,
+        )
         # Store participant information
         self.user_names = {}
         
@@ -85,7 +96,7 @@ async def entrypoint(ctx: agents.JobContext):
             "chunk_length_schedule": [80, 120, 200, 260],
         }
     session = AgentSession(
-        # vad=ctx.proc.userdata["vad"],
+        vad=ctx.proc.userdata["vad"],
         stt=deepgram.STT(
             model="nova-3",
             interim_results=True,
@@ -96,7 +107,7 @@ async def entrypoint(ctx: agents.JobContext):
             language="en",
         ),
         tts=elevenlabs.tts.TTS(**tts_params),
-        turn_detection=MultilingualModel(),
+        turn_detection=EnglishModel(),
     )
 
     logger.info("Starting AgentSession...")
@@ -119,5 +130,7 @@ if __name__ == "__main__":
         api_secret=os.getenv("LIVEKIT_API_SECRET"),
         host="0.0.0.0",
         port=int(os.getenv("PORT", "8080")),
-        # prewarm=prewarm,
-    ))
+        prewarm_fnc=prewarm
+    ),
+    
+    )
