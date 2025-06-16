@@ -64,11 +64,39 @@ async def entrypoint(ctx: agents.JobContext):
     # 2. Create and start the AgentSession
 
     
+    # session = AgentSession(
+    #     # vad=ctx.userdata["vad"],
+    #     llm=openai.realtime.RealtimeModel(
+    #         model = "gpt-4o-mini-realtime-preview",voice="alloy",
+    #         )
+    # )
+    
+    tts_params = {
+            "model":"eleven_turbo_v2_5",
+            "voice_id": "EXAVITQu4vr4xnSDxMaL",
+            "voice_settings": elevenlabs.tts.VoiceSettings(
+                stability=0.71,
+                similarity_boost=0.5,
+                style=0.0,
+                use_speaker_boost=True,
+            ),
+            "streaming_latency": 3,
+            "enable_ssml_parsing": False,
+            "chunk_length_schedule": [80, 120, 200, 260],
+        }
     session = AgentSession(
-        # vad=ctx.userdata["vad"],
-        llm=openai.realtime.RealtimeModel(
-            model = "gpt-4o-mini-realtime-preview",voice="alloy",
-            )
+        # vad=ctx.proc.userdata["vad"],
+        stt=deepgram.STT(
+            model="nova-3",
+            interim_results=True,
+            smart_format=True,
+            punctuate=True,
+            filler_words=True,
+            profanity_filter=False,
+            language="en",
+        ),
+        tts=elevenlabs.tts.TTS(**tts_params),
+        turn_detection=MultilingualModel(),
     )
 
     logger.info("Starting AgentSession...")
